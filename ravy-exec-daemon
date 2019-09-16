@@ -1,0 +1,36 @@
+#!/usr/bin/env swift
+import AppKit
+
+let pasteboard = NSPasteboard.general
+
+var previousChangeCount: Int = pasteboard.changeCount
+var previousCstring: String = ""
+
+let currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+let url = URL(fileURLWithPath: CommandLine.arguments[0], relativeTo: currentDirectoryURL)
+let executorPath = url.deletingLastPathComponent().path + "/ravy-exec-daemon-executor"
+
+while true {
+  Thread.sleep(forTimeInterval: 0.2)
+  let currentChangeCount = pasteboard.changeCount
+  if (currentChangeCount != previousChangeCount) {
+    previousChangeCount = currentChangeCount
+    var cstring: String = ""
+    for element in pasteboard.pasteboardItems! {
+      if let str = element.string(forType: NSPasteboard.PasteboardType.string) {
+        cstring = str
+        break
+      }
+    }
+    if (cstring != "") {
+      if (cstring != previousCstring) {
+        previousCstring = cstring
+        let process = Process()
+        process.launchPath = executorPath
+        process.arguments = []
+        process.launch()
+        process.waitUntilExit()
+      }
+    }
+  }
+}
